@@ -1,0 +1,55 @@
+{
+  "name": "wgpu-py native development",
+  "build": {
+    "dockerfile": "Containerfile",
+    "context": "..",
+    "args": {
+      "RUST_VERSION": "1.87.0"
+    }
+  },
+  "workspaceFolder": "/workspace",
+  "workspaceMount": "source=${localWorkspaceFolder},target=/workspace,type=bind,consistency=cached",
+  "remoteUser": "non-root",
+  "containerUser": "non-root",
+  "updateRemoteUserUID": true,
+  "features": {
+    "ghcr.io/jsburckhardt/devcontainer-features/codex:1": {},
+    "ghcr.io/devcontainers/features/github-cli:1": {}
+  },
+  "runArgs": [
+    "--gpus",
+    "all"
+  ],
+  "mounts": [
+    "source=${localEnv:HOME}/.codex,target=/home/non-root/.codex,type=bind",
+    "source=${localEnv:HOME}/.agents,target=/home/non-root/.agents,type=bind",
+    "source=wgpu-py-uv-cache,target=/home/non-root/.cache/uv,type=volume",
+    "source=wgpu-py-cargo-git,target=/home/non-root/.cargo/git,type=volume",
+    "source=wgpu-py-cargo-registry,target=/home/non-root/.cargo/registry,type=volume",
+    "source=wgpu-py-cargo-target,target=/home/non-root/.cache/cargo-target,type=volume"
+  ],
+  "containerEnv": {
+    "SHELL": "/usr/bin/zsh",
+    "UV_PROJECT_ENVIRONMENT": "/workspace/.venv",
+    "UV_CACHE_DIR": "/home/non-root/.cache/uv",
+    "VIRTUAL_ENV": "/workspace/.venv",
+    "XDG_CACHE_HOME": "/home/non-root/.cache",
+    "MESA_SHADER_CACHE_DIR": "/home/non-root/.cache/mesa_shader_cache",
+    "CARGO_TARGET_DIR": "/home/non-root/.cache/cargo-target",
+    "NVIDIA_VISIBLE_DEVICES": "all",
+    "NVIDIA_DRIVER_CAPABILITIES": "all",
+    "VK_ICD_FILENAMES": "/usr/share/vulkan/icd.d/nvidia_icd.x86_64.json",
+    "XDG_RUNTIME_DIR": "/tmp/wayland",
+    "XDG_SESSION_TYPE": "wayland",
+    "DISPLAY": ""
+  },
+  "postCreateCommand": "zsh -lc \"uv venv .venv && uv pip install -e '.[build,codegen,tests]'\"",
+  "customizations": {
+    "vscode": {
+      "settings": {
+        "python.defaultInterpreterPath": "/workspace/.venv/bin/python",
+        "python.terminal.activateEnvironment": true
+      }
+    }
+  }
+}
