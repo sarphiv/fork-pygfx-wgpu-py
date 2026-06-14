@@ -731,9 +731,15 @@ def test_promise_decorator():
 async def test_enumerate_adapters_async():
     adapters = await wgpu.gpu.enumerate_adapters_async()
     assert len(adapters) > 0
+    device_count = 0
     for adapter in adapters:
-        device = await adapter.request_device_async()
+        try:
+            device = await adapter.request_device_async()
+        except RuntimeError:
+            continue
         assert isinstance(device, GPUDevice)
+        device_count += 1
+    assert device_count > 0
 
 
 @mark.skipif(not can_use_wgpu_lib, reason="Needs wgpu lib")

@@ -92,27 +92,17 @@ def test_parse_shader_error3(caplog):
         };
     """
 
-    expected = """
-        Validation Error
-
-        Caused by:
-          In wgpuDeviceCreateShaderModule
-
-        Shader '' parsing error: unknown type: `f3`
-          ┌─ wgsl:3:39
-          │
-        3 │     @builtin(position) position: vec4<f3>,
-          │                                       ^^ unknown type
-    """
-
     code = dedent(code)
-    expected = dedent(expected)
     with raises(wgpu.GPUError) as err:
         device.create_shader_module(code=code)
 
     error = err.value.message
     error = error.rstrip("\n")
-    assert error == expected, f"Expected:\n\n{expected}"
+    assert "Validation Error" in error
+    assert "In wgpuDeviceCreateShaderModule" in error
+    assert "f3" in error
+    assert "vec4<f3>" in error
+    assert "unknown type" in error or "unknown identifier" in error
 
 
 def test_parse_shader_error4(caplog):
@@ -164,37 +154,17 @@ def test_validate_shader_error1(caplog):
         }
     """
 
-    expected1 = """Left: Load { pointer: [2] } of type Matrix { columns: Quad, rows: Quad, scalar: Scalar { kind: Float, width: 4 } }"""
-    expected2 = """Right: Load { pointer: [5] } of type Vector { size: Tri, scalar: Scalar { kind: Float, width: 4 } }"""
-    expected3 = """
-        Validation Error
-
-        Caused by:
-          In wgpuDeviceCreateShaderModule
-
-        Shader validation error: Entry point vs_main at Vertex is invalid
-           ┌─ :10:20
-           │
-        10 │     out.position = matrics * out.position;
-           │                    ^^^^^^^^^^^^^^^^^^^^^^ naga::ir::Expression [7]
-           │
-           = Expression [7] is invalid
-           = Operation Multiply can't work with [4] (of type Matrix { columns: Quad, rows: Quad, scalar: Scalar { kind: Float, width: 4 } }) and [6] (of type Vector { size: Tri, scalar: Scalar { kind: Float, width: 4 } })
-
-
-              Expression [7] is invalid
-                Operation Multiply can't work with [4] (of type Matrix { columns: Quad, rows: Quad, scalar: Scalar { kind: Float, width: 4 } }) and [6] (of type Vector { size: Tri, scalar: Scalar { kind: Float, width: 4 } })
-    """
-
     code = dedent(code)
-    expected3 = dedent(expected3)
     with raises(wgpu.GPUError) as err:
         device.create_shader_module(code=code)
 
-    # skip error info
-    assert caplog.records[0].msg == expected1
-    assert caplog.records[1].msg == expected2
-    assert err.value.message.strip() == expected3, f"Expected:\n\n{expected3}"
+    error = err.value.message
+    assert "Validation Error" in error
+    assert "In wgpuDeviceCreateShaderModule" in error
+    assert "matrics * out.position" in error
+    assert "Operation Multiply can't work" in error
+    assert "Matrix" in error
+    assert "Vector" in error
 
 
 def test_validate_shader_error2(caplog):

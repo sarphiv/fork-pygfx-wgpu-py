@@ -4,10 +4,16 @@ import pytest
 import wgpu.utils
 from testutils import can_use_wgpu_lib, run_tests
 from wgpu import TextureFormat
+from wgpu.backends.wgpu_native._mappings import enum_str2int
 from wgpu.backends.wgpu_native.extras import create_pipeline_layout, set_push_constants
 
 if not can_use_wgpu_lib:
     pytest.skip("Skipping tests that need the wgpu lib", allow_module_level=True)
+elif "push-constants" not in enum_str2int["NativeFeature"]:
+    pytest.skip(
+        "Skipping push-constants tests because the pinned wgpu-native headers do not expose this extension",
+        allow_module_level=True,
+    )
 
 
 """
