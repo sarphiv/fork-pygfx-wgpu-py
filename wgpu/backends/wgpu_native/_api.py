@@ -1984,7 +1984,7 @@ class GPUDevice(classes.GPUDevice, GPUObjectBase):
         # This code is virtually identical to the code in create_render_pipeline_async.
         # Can they be merged??
         @ffi.callback(
-            "void(WGPUCreatePipelineAsyncStatus, WGPUComputePipeline, char *, void *, void *)"
+            "void(WGPUCreatePipelineAsyncStatus, WGPUComputePipeline, WGPUStringView, void *, void *)"
         )
         def callback(status, result, c_message, _userdata1, _userdata2):
             token.set_done()
@@ -4135,17 +4135,19 @@ class GPUQueue(classes.GPUQueue, GPUObjectBase):
         return data
 
     def on_submitted_work_done_async(self) -> GPUPromise[None]:
-        @ffi.callback("void(WGPUQueueWorkDoneStatus, void *, void *)")
-        def work_done_callback(status, _userdata1, _userdata2):
+        @ffi.callback("void(WGPUQueueWorkDoneStatus, WGPUStringView, void *, void *)")
+        def work_done_callback(status, c_message, _userdata1, _userdata2):
             token.set_done()
             if status == lib.WGPUQueueWorkDoneStatus_Success:
                 promise._wgpu_set_input(True)
             else:
                 result = {
-                    lib.WGPUQueueWorkDoneStatus_InstanceDropped: "InstanceDropped",
+                    lib.WGPUQueueWorkDoneStatus_CallbackCancelled: "CallbackCancelled",
                     lib.WGPUQueueWorkDoneStatus_Error: "Error",
-                    lib.WGPUQueueWorkDoneStatus_Unknown: "Unknown",
                 }.get(status, "Other")
+                msg = from_c_string_view(c_message)
+                if msg:
+                    result = f"{result}: {msg}"
                 promise._wgpu_set_error(
                     RuntimeError(f"Queue work done status: {result}")
                 )

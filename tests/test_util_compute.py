@@ -279,6 +279,62 @@ def test_compute_indirect():
     assert out2[-2:] == [-1, -1]
 
 
+def test_indirect_buffer_can_be_bound_read_only_storage():
+    compute_shader = """
+        @group(0)
+        @binding(0)
+        var<storage,read> args: array<u32>;
+
+        @compute
+        @workgroup_size(1)
+        fn main() {
+            _ = args[0];
+        }
+    """
+
+    device = wgpu.utils.get_default_device()
+    cshader = device.create_shader_module(code=compute_shader)
+
+    buffer = device.create_buffer(
+        size=12,
+        usage=(
+            wgpu.BufferUsage.STORAGE
+            | wgpu.BufferUsage.INDIRECT
+            | wgpu.BufferUsage.COPY_DST
+        ),
+    )
+    device.queue.write_buffer(buffer, 0, (1).to_bytes(4, "little") * 3)
+
+    bind_group_layout = device.create_bind_group_layout(
+        entries=[
+            {
+                "binding": 0,
+                "visibility": wgpu.ShaderStage.COMPUTE,
+                "buffer": {"type": wgpu.BufferBindingType.read_only_storage},
+            },
+        ],
+    )
+    pipeline_layout = device.create_pipeline_layout(
+        bind_group_layouts=[bind_group_layout]
+    )
+    bind_group = device.create_bind_group(
+        layout=bind_group_layout,
+        entries=[{"binding": 0, "resource": {"buffer": buffer}}],
+    )
+    compute_pipeline = device.create_compute_pipeline(
+        layout=pipeline_layout,
+        compute={"module": cshader, "entry_point": "main"},
+    )
+
+    command_encoder = device.create_command_encoder()
+    compute_pass = command_encoder.begin_compute_pass()
+    compute_pass.set_pipeline(compute_pipeline)
+    compute_pass.set_bind_group(0, bind_group)
+    compute_pass.dispatch_workgroups_indirect(buffer, 0)
+    compute_pass.end()
+    device.queue.submit([command_encoder.finish()])
+
+
 def test_compute_default_layout1():
     compute_shader = """
         @group(0)

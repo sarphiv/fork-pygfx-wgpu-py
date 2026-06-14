@@ -318,6 +318,15 @@ def test_logging():
 
 
 @mark.skipif(not can_use_wgpu_lib, reason="Needs wgpu lib")
+def test_queue_on_submitted_work_done_sync():
+    device = wgpu.utils.get_default_device()
+    command_encoder = device.create_command_encoder()
+    device.queue.submit([command_encoder.finish()])
+
+    assert device.queue.on_submitted_work_done_sync() is None
+
+
+@mark.skipif(not can_use_wgpu_lib, reason="Needs wgpu lib")
 def test_wgpu_native_tracer():
     tempdir = os.path.join(tempfile.gettempdir(), "wgpu-tracer-test")
     adapter = wgpu.utils.get_default_device().adapter
