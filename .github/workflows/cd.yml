@@ -189,18 +189,19 @@ jobs:
                 echo "No supported package manager found to install libclang"
                 exit 1
               fi
-              "$PACKAGE_MANAGER" install -y clang-libs
+              "$PACKAGE_MANAGER" install -y clang
               LIBCLANG_FILE="$(find /usr/lib64 /usr/lib /opt/clang /opt/rh -name "libclang.so*" -print -quit 2>/dev/null || true)"
               if [[ -z "$LIBCLANG_FILE" ]]; then
                 "$PACKAGE_MANAGER" install -y clang-devel
                 LIBCLANG_FILE="$(find /usr/lib64 /usr/lib /opt/clang /opt/rh -name "libclang.so*" -print -quit 2>/dev/null || true)"
               fi
               if [[ -z "$LIBCLANG_FILE" ]]; then
-                echo "libclang was not found after installing clang-libs/clang-devel"
+                echo "libclang was not found after installing clang/clang-devel"
                 exit 1
               fi
               export LIBCLANG_PATH="$(dirname "$LIBCLANG_FILE")"
               echo "Using LIBCLANG_PATH=$LIBCLANG_PATH"
+              echo "#include <stddef.h>" | clang -x c -fsyntax-only -
               export PATH="$CARGO_HOME/bin:$PATH"
               curl --proto "=https" --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y --profile minimal --default-toolchain 1.87.0
               . "$CARGO_HOME/env"
