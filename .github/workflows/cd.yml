@@ -181,6 +181,21 @@ jobs:
             -e WGPU_BUILD_PLATFORM_INFO="${{ matrix.wgpu_native_tag }} ${{ matrix.wheel_tag }}" \
             "${{ matrix.manylinux_image }}" \
             /bin/bash -euxo pipefail -c '
+              if command -v dnf >/dev/null 2>&1; then
+                dnf install -y clang-devel
+              elif command -v yum >/dev/null 2>&1; then
+                yum install -y clang-devel
+              else
+                echo "No supported package manager found to install clang-devel"
+                exit 1
+              fi
+              LIBCLANG_FILE="$(find /usr/lib64 /usr/lib /opt/clang /opt/rh -name "libclang.so*" 2>/dev/null | head -n 1)"
+              if [[ -z "$LIBCLANG_FILE" ]]; then
+                echo "libclang was not found after installing clang-devel"
+                exit 1
+              fi
+              export LIBCLANG_PATH="$(dirname "$LIBCLANG_FILE")"
+              echo "Using LIBCLANG_PATH=$LIBCLANG_PATH"
               export PATH="$CARGO_HOME/bin:$PATH"
               curl --proto "=https" --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y --profile minimal --default-toolchain 1.87.0
               . "$CARGO_HOME/env"
