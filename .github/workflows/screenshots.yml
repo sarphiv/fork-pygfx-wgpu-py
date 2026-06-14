@@ -6,6 +6,9 @@ on:
     branches:
       - main
 
+env:
+  WGPU_PY_BUILD_NOARCH: "1"
+
 jobs:
   screenshots:
     name: Regenerate screenshot

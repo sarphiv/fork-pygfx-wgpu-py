@@ -6,6 +6,9 @@ on:
     tags:
       - 'v*'
 
+env:
+  WGPU_PY_BUILD_NOARCH: "1"
+
 jobs:
 
   lint-build:
@@ -70,7 +73,6 @@ jobs:
     - name: Test imports
       run: |
           python -c "print('wgpu'); import wgpu; print(wgpu)"
-          python -c "print('wgpu.backends.wgpu_native'); import wgpu.backends.wgpu_native"
           python -c "print('wgpu.utils'); import wgpu.utils"
 
   docs-build:
