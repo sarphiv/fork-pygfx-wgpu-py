@@ -8,6 +8,9 @@ name: CD
 on:
   workflow_dispatch:
 
+permissions:
+  contents: read
+
 env:
   FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: "true"
   WGPU_NATIVE_REPO: https://github.com/gfx-rs/wgpu-native.git
@@ -25,11 +28,19 @@ jobs:
       contents: read
     steps:
       - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
 
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
           python-version: '3.12'
+
+      - name: Set up Rust
+        run: |
+          rustup toolchain install 1.87.0 --profile minimal
+          rustup default 1.87.0
+          rustc --version
 
       - name: Install build dependencies
         env:
