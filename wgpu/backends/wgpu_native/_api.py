@@ -2984,8 +2984,6 @@ class GPUBindingCommandsMixin(classes.GPUBindingCommandsMixin):
             raise ValueError("size_in_bytes + data_offset is too large")
 
         c_data = ffi.cast("void *", address)  # do we want to add data_offset?
-        # FIXME: There are no assignments to class field _set_push_constants_function
-        # FIXME: There are no assignments to class field _set_push_constants_function
         function = type(self)._set_push_constants_function
         if function is None:
             self._not_implemented("set_push_constants")

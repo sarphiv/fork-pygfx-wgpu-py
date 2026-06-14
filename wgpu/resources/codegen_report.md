@@ -30,8 +30,7 @@
 * Enum CanvasAlphaMode missing in webgpu.h/wgpu.h
 * Enum CanvasToneMappingMode missing in webgpu.h/wgpu.h
 * Wrote 266 enum mappings and 49 struct-field mappings to wgpu_native/_mappings.py
-* ERROR: There are no assignments to class field _set_push_constants_function
 * Validated 151 C function calls
 * Not using 88 C functions
-* ERROR: unknown C struct WGPUPipelineLayoutExtras
+* Optional C struct missing in webgpu.h/wgpu.h: WGPUPipelineLayoutExtras
 * Validated 97 C structs

@@ -9,6 +9,7 @@ on:
   workflow_dispatch:
 
 env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: "true"
   WGPU_NATIVE_REPO: https://github.com/gfx-rs/wgpu-native.git
   WGPU_NATIVE_COMMIT: 61efac8438bdbee4b93c1e111091d22120f1e1f3
   WEBGPU_HEADERS_COMMIT: 7d3186c3dd2c708703524027b46b8703534ab3cc

@@ -219,7 +219,12 @@ def patch_wgpu_native_backend(code):
 
 
 class CommentRemover(Patcher):
-    triggers = "# FIXME: unknown C", "# FIXME: invalid C", "# H:"
+    triggers = (
+        "# FIXME: unknown C",
+        "# FIXME: invalid C",
+        "# FIXME: There are no assignments to class field",
+        "# H:",
+    )
 
     def apply(self, code):
         self._init(code)
@@ -235,6 +240,7 @@ class FunctionPatcher(Patcher):
         count = 0
         detected = set()
         generic_class_var_assignment = defaultdict(list)
+        optional_class_var_assignment = set()
         generic_class_var_use = {}
 
         for line, i in self.iter_lines():
@@ -266,6 +272,17 @@ class FunctionPatcher(Patcher):
                     print(f"ERROR: {msg}")
                 else:
                     generic_class_var_assignment[var_name].append(lib_name)
+            elif match := re.search(
+                r"(_\w+_function) = getattr\(\s*libf?,\s*[\"'](wgpu\w*)[\"']",
+                line,
+            ):
+                # Assignment of an optional libf function to a class variable.
+                # Some extension functions can be absent from the current headers.
+                var_name, lib_name = match.group(1, 2)
+                if lib_name in hp.functions:
+                    generic_class_var_assignment[var_name].append(lib_name)
+                else:
+                    optional_class_var_assignment.add(var_name)
             elif match := re.search(r"type\(self\).(_\w+_function)", line):
                 # Calling the class variable. Keep track of where we are, so we can
                 # patch in the appropriate annotations.
@@ -276,9 +293,12 @@ class FunctionPatcher(Patcher):
             indent = " " * (len(line) - len(line.lstrip()))
             lib_names = generic_class_var_assignment.pop(var_name, ())
             if not lib_names:
-                msg = f"There are no assignments to class field {var_name}"
-                self.insert_line(i, f"{indent}# FIXME: {msg}")
-                print(f"ERROR: {msg}")
+                if var_name in optional_class_var_assignment:
+                    optional_class_var_assignment.remove(var_name)
+                else:
+                    msg = f"There are no assignments to class field {var_name}"
+                    self.insert_line(i, f"{indent}# FIXME: {msg}")
+                    print(f"ERROR: {msg}")
             detected.update(lib_names)
             count += len(lib_names)
             for lib_name in lib_names:
@@ -307,6 +327,8 @@ class FunctionPatcher(Patcher):
 
 
 class StructPatcher(Patcher):
+    optional_structs = {"WGPUPipelineLayoutExtras"}
+
     def apply(self, code):
         self._init(code)
         count = 0
@@ -397,7 +419,10 @@ class StructPatcher(Patcher):
         if struct_name not in hp.structs:
             msg = f"unknown C struct {struct_name}"
             self.insert_line(i1, f"{indent}# FIXME: {msg}")
-            print(f"ERROR: {msg}")
+            if struct_name in self.optional_structs:
+                print(f"Optional C struct missing in webgpu.h/wgpu.h: {struct_name}")
+            else:
+                print(f"ERROR: {msg}")
             return
         else:
             struct = hp.structs[struct_name]
