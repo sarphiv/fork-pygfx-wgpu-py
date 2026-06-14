@@ -1,3 +1,32 @@
+# AI-WRITTEN EXPERIMENTAL FLOAT32 ATOMICS BRANCH
+
+**This branch was entirely written by AI to add native-only float32 shader
+atomic support to this `wgpu-py` fork.** It is not an upstream `pygfx/wgpu-py`
+release and it does not claim browser WebGPU support.
+
+To enable the feature in downstream Python code, install the custom GitHub
+Release wheel from this fork and request the native feature explicitly:
+
+```py
+adapter = wgpu.gpu.request_adapter_sync()
+device = adapter.request_device_sync(
+    required_features=["shader-float32-atomic"],
+)
+```
+
+WGSL using `atomic<f32>` and `atomicAdd` is expected to work only when the
+native adapter reports `shader-float32-atomic` and the device is created with
+that required feature. This custom wheel builds the pinned `wgpu-native`
+checkout with local `naga` and `wgpu-hal` patches so workgroup/shared
+`atomic<f32>` validates and is enabled on Vulkan adapters that expose the
+required shared float32 atomic capabilities.
+
+This code and any wheel published from this branch are provided as-is, without
+warranty of any kind. Use them at your own risk. This experimental AI-generated
+branch is published without accepting liability for downstream breakage, data
+loss, hardware issues, security problems, production incidents, or any other
+damages arising from its use.
+
 [![CI](https://github.com/pygfx/wgpu-py/workflows/CI/badge.svg)](https://github.com/pygfx/wgpu-py/actions)
 [![Documentation Status](https://readthedocs.org/projects/wgpu-py/badge/?version=stable)](https://wgpu-py.readthedocs.io)
 [![PyPI version](https://badge.fury.io/py/wgpu.svg)](https://badge.fury.io/py/wgpu)

@@ -11,17 +11,49 @@ def _get_wgpu_header():
     """Func written so we can use this in both wgpu_native/_ffi.py and codegen/hparser.py"""
     # Read files
     lines1 = []
-    lines1.extend(read_file("resources", "webgpu.h").splitlines())
-    lines1.extend(read_file("resources", "wgpu.h").splitlines())
+    lines1.extend(
+        read_file("resources", "webgpu.h")
+        .replace("\r\n", "\n")
+        .replace("\\\n", "")
+        .splitlines(True)
+    )
+    lines1.extend(
+        read_file("resources", "wgpu.h")
+        .replace("\r\n", "\n")
+        .replace("\\\n", "")
+        .splitlines(True)
+    )
     # Deal with pre-processor commands, because cffi cannot handle them.
     # Just removing them, plus a few extra lines, seems to do the trick.
     lines2 = []
+    skip_extern_c_brace = False
     for line in lines1:
-        if line.startswith("#define ") and len(line.split()) > 2 and "0x" in line:
+        if skip_extern_c_brace and line.strip() == "{":
+            skip_extern_c_brace = False
+            continue
+        skip_extern_c_brace = False
+        if (
+            line.startswith("#define ")
+            and len(line.split()) > 2
+            and ("0x" in line or "_MAX" in line)
+            and "_wgpu_MAKE_INIT_STRUCT" not in line
+        ):
+            # pattern to find: #define WGPU_CONSTANT (0x1234)
+            # use ffi.sizeof() to match the current platform's integer widths.
+            ffi = FFI()
+            max_size = hex((1 << ffi.sizeof("size_t") * 8) - 1)
+            max_32 = hex((1 << ffi.sizeof("uint32_t") * 8) - 1)
+            max_64 = hex((1 << ffi.sizeof("uint64_t") * 8) - 1)
+            line = (
+                line.replace("SIZE_MAX", max_size)
+                .replace("UINT32_MAX", max_32)
+                .replace("UINT64_MAX", max_64)
+            )
             line = line.replace("(", "").replace(")", "")
         elif line.startswith("#"):
             continue
         elif 'extern "C"' in line:
+            skip_extern_c_brace = "{" not in line
             continue
         for define_to_drop in [
             "WGPU_EXPORT ",
@@ -75,7 +107,7 @@ class HParser:
             print("webgpu.h/wgpu.h define " + stats)
 
     def _parse_from_h(self):
-        code = self.source
+        code = remove_c_comments(self.source)
 
         # Collect enums and flags. This is easy.
         # Note that flags are first defined as enums and then redefined as flags later.
@@ -95,8 +127,7 @@ class HParser:
             assert name1.startswith("WGPU")
             name = name1[4:]
             self.enums[name] = enum = {}
-            code_block = code[i2 + 1 : i3].strip().strip(";")
-            block = remove_c_comments(code_block).strip()
+            block = code[i2 + 1 : i3].strip().strip(";")
             for f in block.split(","):
                 if not f:
                     continue  # no item after last comma
@@ -137,7 +168,7 @@ class HParser:
             # fill flags
             # schema: static const WGPUFlagName WGPUFlagName_Value = 0x0000000000000001;
             if line.startswith("static const"):
-                line = remove_c_comments(line).strip()
+                line = line.strip()
                 flag_name = line.removeprefix("static const").lstrip().split()[0]
                 flag_key, _, val = (
                     line.removeprefix(f"static const {flag_name}")
@@ -172,7 +203,7 @@ class HParser:
             name = code[i3 + 1 : i4].strip()
             self.structs[name] = struct = {}
             for f in code[i2 + 1 : i3].strip().strip(";").split(";"):
-                f = remove_c_comments(f).strip()
+                f = f.strip()
                 if not f:
                     continue  # probably last item ended with a comma
                 parts = f.strip().split()

@@ -44,8 +44,22 @@ class CustomBuildHook(BuildHookInterface):
         # we go pure-Python mode, and expect the user to set WGPU_LIB_PATH.
         # We also allow building an arch-agnostic wheel explicitly, using an env var.
 
+        use_bundled_lib = os.getenv("WGPU_PY_BUILD_USE_BUNDLED_LIB", "").lower() in (
+            "1",
+            "true",
+        )
+
         if os.getenv("WGPU_PY_BUILD_NOARCH", "").lower() in ("1", "true"):
             pass  # Explicitly disable including the lib
+        elif use_bundled_lib and self.target_name == "wheel":
+            ensure_bundled_lib_exists()
+            build_data["pure_python"] = False
+            platform_info = os.getenv("WGPU_BUILD_PLATFORM_INFO")
+            if platform_info:
+                _wgpu_native_tag, wheel_tag = platform_info.split()
+                build_data["tag"] = "py3-none-" + wheel_tag
+            else:
+                build_data["infer_tag"] = True
         elif self.target_name == "wheel" and is_git_repo():
             # Prepare
             check_git_status()
@@ -91,3 +105,14 @@ def remove_all_libs():
         if fname.endswith((".so", ".dll", ".dylib")):
             os.remove(os.path.join(dir, fname))
             print(f"Removed {fname} from resource dir")
+
+
+def ensure_bundled_lib_exists():
+    dir = os.path.join(root_dir, "wgpu", "resources")
+    for fname in os.listdir(dir):
+        if fname.endswith((".so", ".dll", ".dylib")):
+            return
+    raise RuntimeError(
+        "WGPU_PY_BUILD_USE_BUNDLED_LIB is set, but no native library exists in "
+        "wgpu/resources."
+    )

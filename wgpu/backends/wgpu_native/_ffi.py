@@ -44,11 +44,17 @@ def _get_wgpu_header(*filenames):
     # Deal with pre-processor commands, because cffi cannot handle them.
     # Just removing them, plus a few extra lines, seems to do the trick.
     lines2 = []
+    skip_extern_c_brace = False
     for line in lines1:
+        if skip_extern_c_brace and line.strip() == "{":
+            skip_extern_c_brace = False
+            continue
+        skip_extern_c_brace = False
         if (
             line.startswith("#define ")
             and len(line.split()) > 2
             and ("0x" in line or "_MAX" in line)
+            and "_wgpu_MAKE_INIT_STRUCT" not in line
         ):
             # pattern to find: #define WGPU_CONSTANT (0x1234)
             # we use ffi.sizeof() to hopefully get the correct max sizes per platform
@@ -64,6 +70,7 @@ def _get_wgpu_header(*filenames):
         elif line.startswith("#"):
             continue
         elif 'extern "C"' in line:
+            skip_extern_c_brace = "{" not in line
             continue
         for define_to_drop in [
             "WGPU_EXPORT ",

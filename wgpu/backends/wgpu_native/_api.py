@@ -322,23 +322,25 @@ def _get_limits(id: int, device: bool = False, adapter: bool = False):
     """Gets the limits for a device or an adapter"""
     assert device + adapter == 1  # exactly one is set
 
-    # H: chain: WGPUChainedStructOut, maxPushConstantSize: int, maxNonSamplerBindings: int
+    # H: chain: WGPUChainedStruct, maxNonSamplerBindings: int, maxBindingArrayElementsPerShaderStage: int, maxBindingArraySamplerElementsPerShaderStage: int, maxMultiviewViewCount: int
     c_limits_native = new_struct(
         "WGPUNativeLimits",
-        # H: next: WGPUChainedStructOut *, sType: WGPUSType
+        # H: next: WGPUChainedStruct *, sType: WGPUSType
         chain=new_struct(
-            "WGPUChainedStructOut",
+            "WGPUChainedStruct",
             # not used: next
             sType=lib.WGPUSType_NativeLimits,
         ),
-        # not used: maxPushConstantSize
         # not used: maxNonSamplerBindings
+        # not used: maxBindingArrayElementsPerShaderStage
+        # not used: maxBindingArraySamplerElementsPerShaderStage
+        # not used: maxMultiviewViewCount
     )
 
     # Note that the object returned by ffi.cast() does not own the memory, so we must keep a ref to the uncast object, until wgpu-native has consumed it.
     c_limit_next_in_chain = ffi.addressof(c_limits_native, "chain")
 
-    # H: nextInChain: WGPUChainedStructOut *, maxTextureDimension1D: int, maxTextureDimension2D: int, maxTextureDimension3D: int, maxTextureArrayLayers: int, maxBindGroups: int, maxBindGroupsPlusVertexBuffers: int, maxBindingsPerBindGroup: int, maxDynamicUniformBuffersPerPipelineLayout: int, maxDynamicStorageBuffersPerPipelineLayout: int, maxSampledTexturesPerShaderStage: int, maxSamplersPerShaderStage: int, maxStorageBuffersPerShaderStage: int, maxStorageTexturesPerShaderStage: int, maxUniformBuffersPerShaderStage: int, maxUniformBufferBindingSize: int, maxStorageBufferBindingSize: int, minUniformBufferOffsetAlignment: int, minStorageBufferOffsetAlignment: int, maxVertexBuffers: int, maxBufferSize: int, maxVertexAttributes: int, maxVertexBufferArrayStride: int, maxInterStageShaderVariables: int, maxColorAttachments: int, maxColorAttachmentBytesPerSample: int, maxComputeWorkgroupStorageSize: int, maxComputeInvocationsPerWorkgroup: int, maxComputeWorkgroupSizeX: int, maxComputeWorkgroupSizeY: int, maxComputeWorkgroupSizeZ: int, maxComputeWorkgroupsPerDimension: int
+    # H: nextInChain: WGPUChainedStruct *, maxTextureDimension1D: int, maxTextureDimension2D: int, maxTextureDimension3D: int, maxTextureArrayLayers: int, maxBindGroups: int, maxBindGroupsPlusVertexBuffers: int, maxBindingsPerBindGroup: int, maxDynamicUniformBuffersPerPipelineLayout: int, maxDynamicStorageBuffersPerPipelineLayout: int, maxSampledTexturesPerShaderStage: int, maxSamplersPerShaderStage: int, maxStorageBuffersPerShaderStage: int, maxStorageTexturesPerShaderStage: int, maxUniformBuffersPerShaderStage: int, maxUniformBufferBindingSize: int, maxStorageBufferBindingSize: int, minUniformBufferOffsetAlignment: int, minStorageBufferOffsetAlignment: int, maxVertexBuffers: int, maxBufferSize: int, maxVertexAttributes: int, maxVertexBufferArrayStride: int, maxInterStageShaderVariables: int, maxColorAttachments: int, maxColorAttachmentBytesPerSample: int, maxComputeWorkgroupStorageSize: int, maxComputeInvocationsPerWorkgroup: int, maxComputeWorkgroupSizeX: int, maxComputeWorkgroupSizeY: int, maxComputeWorkgroupSizeZ: int, maxComputeWorkgroupsPerDimension: int, maxImmediateSize: int
     c_limits = new_struct_p(
         "WGPULimits *",
         nextInChain=c_limit_next_in_chain,
@@ -373,6 +375,7 @@ def _get_limits(id: int, device: bool = False, adapter: bool = False):
         # not used: maxComputeWorkgroupSizeY
         # not used: maxComputeWorkgroupSizeZ
         # not used: maxComputeWorkgroupsPerDimension
+        # not used: maxImmediateSize
     )
     if adapter:
         # H: WGPUStatus f(WGPUAdapter adapter, WGPULimits * limits)
@@ -598,17 +601,17 @@ class GPU(classes.GPU):
         # is to get the actual adapters. Note that the second arg (now NULL) can
         # be a `WGPUInstanceEnumerateAdapterOptions` to filter by backend.
         instance = get_wgpu_instance()
-        # H: size_t f(WGPUInstance instance, WGPUInstanceEnumerateAdapterOptions const * options, WGPUAdapter * adapters)
+        # H: size_t f(WGPUInstance instance, WGPUInstanceEnumerateAdapterOptions const *options, WGPUAdapter *adapters)
         count = libf.wgpuInstanceEnumerateAdapters(instance, ffi.NULL, ffi.NULL)
         adapters = new_array("WGPUAdapter[]", count)
-        # H: size_t f(WGPUInstance instance, WGPUInstanceEnumerateAdapterOptions const * options, WGPUAdapter * adapters)
+        # H: size_t f(WGPUInstance instance, WGPUInstanceEnumerateAdapterOptions const *options, WGPUAdapter *adapters)
         libf.wgpuInstanceEnumerateAdapters(instance, ffi.NULL, adapters)
         return [self._create_adapter(adapter) for adapter in adapters]
 
     def _create_adapter(self, adapter_id):
         # ----- Get adapter info
 
-        # H: nextInChain: WGPUChainedStructOut *, vendor: WGPUStringView, architecture: WGPUStringView, device: WGPUStringView, description: WGPUStringView, backendType: WGPUBackendType, adapterType: WGPUAdapterType, vendorID: int, deviceID: int
+        # H: nextInChain: WGPUChainedStruct *, vendor: WGPUStringView, architecture: WGPUStringView, device: WGPUStringView, description: WGPUStringView, backendType: WGPUBackendType, adapterType: WGPUAdapterType, vendorID: int, deviceID: int, subgroupMinSize: int, subgroupMaxSize: int
         c_info = new_struct_p(
             "WGPUAdapterInfo *",
             # not used: nextInChain
@@ -620,6 +623,8 @@ class GPU(classes.GPU):
             # not used: adapterType
             # not used: vendorID
             # not used: deviceID
+            # not used: subgroupMinSize
+            # not used: subgroupMaxSize
         )
 
         # H: WGPUStatus f(WGPUAdapter adapter, WGPUAdapterInfo * info)
@@ -728,7 +733,7 @@ class GPUCanvasContext(classes.GPUCanvasContext):
             "present_modes": ["fifo"],
         }
 
-        # H: nextInChain: WGPUChainedStructOut *, usages: WGPUTextureUsage/int, formatCount: int, formats: WGPUTextureFormat *, presentModeCount: int, presentModes: WGPUPresentMode *, alphaModeCount: int, alphaModes: WGPUCompositeAlphaMode *
+        # H: nextInChain: WGPUChainedStruct *, usages: WGPUTextureUsage/int, formatCount: int, formats: WGPUTextureFormat *, presentModeCount: int, presentModes: WGPUPresentMode *, alphaModeCount: int, alphaModes: WGPUCompositeAlphaMode *
         c_capabilities = new_struct_p(
             "WGPUSurfaceCapabilities *",
             # not used: nextInChain
@@ -927,7 +932,7 @@ class GPUCanvasContext(classes.GPUCanvasContext):
 
         # Prepare for obtaining a texture.
         status_str_map = enum_int2str["SurfaceGetCurrentTextureStatus"]
-        # H: nextInChain: WGPUChainedStructOut *, texture: WGPUTexture, status: WGPUSurfaceGetCurrentTextureStatus
+        # H: nextInChain: WGPUChainedStruct *, texture: WGPUTexture, status: WGPUSurfaceGetCurrentTextureStatus
         surface_texture = new_struct_p(
             "WGPUSurfaceTexture *",
             # not used: nextInChain
@@ -1157,7 +1162,7 @@ class GPUAdapter(classes.GPUAdapter):
 
         # ----- Set limits
 
-        # H: nextInChain: WGPUChainedStructOut *, maxTextureDimension1D: int, maxTextureDimension2D: int, maxTextureDimension3D: int, maxTextureArrayLayers: int, maxBindGroups: int, maxBindGroupsPlusVertexBuffers: int, maxBindingsPerBindGroup: int, maxDynamicUniformBuffersPerPipelineLayout: int, maxDynamicStorageBuffersPerPipelineLayout: int, maxSampledTexturesPerShaderStage: int, maxSamplersPerShaderStage: int, maxStorageBuffersPerShaderStage: int, maxStorageTexturesPerShaderStage: int, maxUniformBuffersPerShaderStage: int, maxUniformBufferBindingSize: int, maxStorageBufferBindingSize: int, minUniformBufferOffsetAlignment: int, minStorageBufferOffsetAlignment: int, maxVertexBuffers: int, maxBufferSize: int, maxVertexAttributes: int, maxVertexBufferArrayStride: int, maxInterStageShaderVariables: int, maxColorAttachments: int, maxColorAttachmentBytesPerSample: int, maxComputeWorkgroupStorageSize: int, maxComputeInvocationsPerWorkgroup: int, maxComputeWorkgroupSizeX: int, maxComputeWorkgroupSizeY: int, maxComputeWorkgroupSizeZ: int, maxComputeWorkgroupsPerDimension: int
+        # H: nextInChain: WGPUChainedStruct *, maxTextureDimension1D: int, maxTextureDimension2D: int, maxTextureDimension3D: int, maxTextureArrayLayers: int, maxBindGroups: int, maxBindGroupsPlusVertexBuffers: int, maxBindingsPerBindGroup: int, maxDynamicUniformBuffersPerPipelineLayout: int, maxDynamicStorageBuffersPerPipelineLayout: int, maxSampledTexturesPerShaderStage: int, maxSamplersPerShaderStage: int, maxStorageBuffersPerShaderStage: int, maxStorageTexturesPerShaderStage: int, maxUniformBuffersPerShaderStage: int, maxUniformBufferBindingSize: int, maxStorageBufferBindingSize: int, minUniformBufferOffsetAlignment: int, minStorageBufferOffsetAlignment: int, maxVertexBuffers: int, maxBufferSize: int, maxVertexAttributes: int, maxVertexBufferArrayStride: int, maxInterStageShaderVariables: int, maxColorAttachments: int, maxColorAttachmentBytesPerSample: int, maxComputeWorkgroupStorageSize: int, maxComputeInvocationsPerWorkgroup: int, maxComputeWorkgroupSizeX: int, maxComputeWorkgroupSizeY: int, maxComputeWorkgroupSizeZ: int, maxComputeWorkgroupsPerDimension: int, maxImmediateSize: int
         c_required_limits = new_struct_p(
             "WGPULimits *",
             # not used: nextInChain
@@ -1192,6 +1197,7 @@ class GPUAdapter(classes.GPUAdapter):
             # not used: maxComputeWorkgroupSizeY
             # not used: maxComputeWorkgroupSizeZ
             # not used: maxComputeWorkgroupsPerDimension
+            # not used: maxImmediateSize
         )
 
         def canonicalize_limit_name(name):
@@ -1235,15 +1241,22 @@ class GPUAdapter(classes.GPUAdapter):
             setattr(c_required_limits, key, value)
 
         #  the native only limits are passed in via the next-in-chain struct
-        # H: chain: WGPUChainedStructOut, maxPushConstantSize: int, maxNonSamplerBindings: int
+        def get_required_native_limit(name):
+            return required_limits.get(
+                name, self._limits.get(name, lib.WGPU_LIMIT_U32_UNDEFINED)
+            )
+
+        # H: chain: WGPUChainedStruct, maxNonSamplerBindings: int, maxBindingArrayElementsPerShaderStage: int, maxBindingArraySamplerElementsPerShaderStage: int, maxMultiviewViewCount: int
         c_required_limits_native = new_struct_p(
             "WGPUNativeLimits *",
-            maxPushConstantSize=required_limits.get(
-                "max-push-constant-size", self._limits["max-push-constant-size"]
+            maxNonSamplerBindings=get_required_native_limit("max-non-sampler-bindings"),
+            maxBindingArrayElementsPerShaderStage=get_required_native_limit(
+                "max-binding-array-elements-per-shader-stage"
             ),
-            maxNonSamplerBindings=required_limits.get(
-                "max-non-sampler-bindings", self._limits["max-non-sampler-bindings"]
+            maxBindingArraySamplerElementsPerShaderStage=get_required_native_limit(
+                "max-binding-array-sampler-elements-per-shader-stage"
             ),
+            maxMultiviewViewCount=get_required_native_limit("max-multiview-view-count"),
             # not used: chain
         )
         c_required_limits_native.chain.next = ffi.NULL
@@ -1431,7 +1444,7 @@ class GPUDevice(classes.GPUDevice, GPUObjectBase):
 
         def poll_func(block):
             # This function has no direct nor indirect refs to the device object; avoid circular loops
-            # H: WGPUBool f(WGPUDevice device, WGPUBool wait, WGPUSubmissionIndex const * submissionIndex)
+            # H: WGPUBool f(WGPUDevice device, WGPUBool wait, WGPUSubmissionIndex const *submissionIndex)
             libf.wgpuDevicePoll(internal, block, ffi.NULL)
 
         self._poller = PollThread(poll_func)
@@ -1440,12 +1453,12 @@ class GPUDevice(classes.GPUDevice, GPUObjectBase):
     def _poll(self, block=False):
         # Internal function
         if self._internal:
-            # H: WGPUBool f(WGPUDevice device, WGPUBool wait, WGPUSubmissionIndex const * submissionIndex)
+            # H: WGPUBool f(WGPUDevice device, WGPUBool wait, WGPUSubmissionIndex const *submissionIndex)
             libf.wgpuDevicePoll(self._internal, block, ffi.NULL)
 
     def _poll_wait(self):
         if self._internal:
-            # H: WGPUBool f(WGPUDevice device, WGPUBool wait, WGPUSubmissionIndex const * submissionIndex)
+            # H: WGPUBool f(WGPUDevice device, WGPUBool wait, WGPUSubmissionIndex const *submissionIndex)
             libf.wgpuDevicePoll(self._internal, True, ffi.NULL)
 
     def create_buffer(
@@ -1671,7 +1684,7 @@ class GPUDevice(classes.GPUDevice, GPUObjectBase):
             visibility = entry["visibility"]
             if isinstance(visibility, str):
                 visibility = str_flag_to_int(flags.ShaderStage, visibility)
-            # H: nextInChain: WGPUChainedStruct *, binding: int, visibility: WGPUShaderStage/int, buffer: WGPUBufferBindingLayout, sampler: WGPUSamplerBindingLayout, texture: WGPUTextureBindingLayout, storageTexture: WGPUStorageTextureBindingLayout
+            # H: nextInChain: WGPUChainedStruct *, binding: int, visibility: WGPUShaderStage/int, bindingArraySize: int, buffer: WGPUBufferBindingLayout, sampler: WGPUSamplerBindingLayout, texture: WGPUTextureBindingLayout, storageTexture: WGPUStorageTextureBindingLayout
             c_entry = new_struct(
                 "WGPUBindGroupLayoutEntry",
                 # not used: nextInChain
@@ -1681,6 +1694,7 @@ class GPUDevice(classes.GPUDevice, GPUObjectBase):
                 sampler=sampler,
                 texture=texture,
                 storageTexture=storage_texture,
+                # not used: bindingArraySize
             )
             c_entries_list.append(c_entry)
 
@@ -1812,7 +1826,7 @@ class GPUDevice(classes.GPUDevice, GPUObjectBase):
                 c_push_constant_range.start = layout["start"]
                 c_push_constant_range.end = layout["end"]
 
-            # H: chain: WGPUChainedStruct, pushConstantRangeCount: int, pushConstantRanges: WGPUPushConstantRange *
+            # FIXME: unknown C struct WGPUPipelineLayoutExtras
             c_pipeline_layout_extras = new_struct_p(
                 "WGPUPipelineLayoutExtras *",
                 pushConstantRangeCount=count,
@@ -1825,13 +1839,14 @@ class GPUDevice(classes.GPUDevice, GPUObjectBase):
                 "WGPUChainedStruct *", c_pipeline_layout_extras
             )
 
-        # H: nextInChain: WGPUChainedStruct *, label: WGPUStringView, bindGroupLayoutCount: int, bindGroupLayouts: WGPUBindGroupLayout *
+        # H: nextInChain: WGPUChainedStruct *, label: WGPUStringView, bindGroupLayoutCount: int, bindGroupLayouts: WGPUBindGroupLayout *, immediateSize: int
         struct = new_struct_p(
             "WGPUPipelineLayoutDescriptor *",
             nextInChain=c_pipeline_layout_next_in_chain,
             label=to_c_string_view(label),
             bindGroupLayouts=c_layout_array,
             bindGroupLayoutCount=len(bind_group_layouts),
+            # not used: immediateSize
         )
 
         # H: WGPUPipelineLayout f(WGPUDevice device, WGPUPipelineLayoutDescriptor const * descriptor)
@@ -1877,7 +1892,7 @@ class GPUDevice(classes.GPUDevice, GPUObjectBase):
                             value=to_c_string_view("gl_VertexIndex"),
                         )
                     )
-                # H: chain: WGPUChainedStruct, stage: WGPUShaderStage/int, code: WGPUStringView, defineCount: int, defines: WGPUShaderDefine *
+                # H: chain: WGPUChainedStruct, stage: WGPUShaderStage/int, code: WGPUStringView, defineCount: int, defines: WGPUShaderDefine const/WGPUShaderDefine *
                 source_struct = new_struct_p(
                     "WGPUShaderSourceGLSL *",
                     # not used: chain
@@ -2015,7 +2030,7 @@ class GPUDevice(classes.GPUDevice, GPUObjectBase):
         c_constants, c_constant_entries = _get_override_constant_entries(compute)
         # H: nextInChain: WGPUChainedStruct *, module: WGPUShaderModule, entryPoint: WGPUStringView, constantCount: int, constants: WGPUConstantEntry *
         c_compute_stage = new_struct(
-            "WGPUProgrammableStageDescriptor",
+            "WGPUComputeState",
             # not used: nextInChain
             module=compute["module"]._internal,
             entryPoint=to_c_string_view(compute.get("entry_point")),
@@ -2032,7 +2047,7 @@ class GPUDevice(classes.GPUDevice, GPUObjectBase):
                 "create_compute_pipeline() 'layout' arg must be a GPUPipelineLayout or 'auto'"
             )
 
-        # H: nextInChain: WGPUChainedStruct *, label: WGPUStringView, layout: WGPUPipelineLayout, compute: WGPUProgrammableStageDescriptor
+        # H: nextInChain: WGPUChainedStruct *, label: WGPUStringView, layout: WGPUPipelineLayout, compute: WGPUComputeState
         struct = new_struct_p(
             "WGPUComputePipelineDescriptor *",
             # not used: nextInChain
@@ -2302,22 +2317,24 @@ class GPUDevice(classes.GPUDevice, GPUObjectBase):
     def _create_vertex_buffer_layout(self, buffer_des):
         c_attributes_list = []
         for attribute in buffer_des["attributes"]:
-            # H: format: WGPUVertexFormat, offset: int, shaderLocation: int
+            # H: nextInChain: WGPUChainedStruct *, format: WGPUVertexFormat, offset: int, shaderLocation: int
             c_attribute = new_struct(
                 "WGPUVertexAttribute",
                 format=attribute["format"],
                 offset=attribute["offset"],  # this offset is required
                 shaderLocation=attribute["shader_location"],
+                # not used: nextInChain
             )
             c_attributes_list.append(c_attribute)
         c_attributes_array = new_array("WGPUVertexAttribute[]", c_attributes_list)
-        # H: stepMode: WGPUVertexStepMode, arrayStride: int, attributeCount: int, attributes: WGPUVertexAttribute *
+        # H: nextInChain: WGPUChainedStruct *, stepMode: WGPUVertexStepMode, arrayStride: int, attributeCount: int, attributes: WGPUVertexAttribute *
         c_vertex_buffer_descriptor = new_struct(
             "WGPUVertexBufferLayout",
             arrayStride=buffer_des["array_stride"],
             stepMode=buffer_des.get("step_mode", "vertex"),
             attributes=c_attributes_array,
             attributeCount=len(c_attributes_list),
+            # not used: nextInChain
         )
         return c_vertex_buffer_descriptor
 
@@ -2429,7 +2446,7 @@ class GPUDevice(classes.GPUDevice, GPUObjectBase):
         c_query_set_next_in_chain = ffi.NULL
         if statistics:
             c_statistics = new_array("WGPUPipelineStatisticName[]", statistics)
-            # H: chain: WGPUChainedStruct, pipelineStatistics: WGPUPipelineStatisticName *, pipelineStatisticCount: int
+            # H: chain: WGPUChainedStruct, pipelineStatistics: WGPUPipelineStatisticName const/WGPUPipelineStatisticName *, pipelineStatisticCount: int
             c_query_set_descriptor_extras = new_struct_p(
                 "WGPUQuerySetDescriptorExtras *",
                 pipelineStatisticCount=len(statistics),
@@ -2967,9 +2984,8 @@ class GPUBindingCommandsMixin(classes.GPUBindingCommandsMixin):
             raise ValueError("size_in_bytes + data_offset is too large")
 
         c_data = ffi.cast("void *", address)  # do we want to add data_offset?
-        # H: void wgpuComputePassEncoderSetPushConstants(WGPUComputePassEncoder encoder, uint32_t offset, uint32_t sizeBytes, void const * data)
-        # H: void wgpuRenderPassEncoderSetPushConstants(WGPURenderPassEncoder encoder, WGPUShaderStage stages, uint32_t offset, uint32_t sizeBytes, void const * data)
-        # H: void wgpuRenderBundleEncoderSetPushConstants(WGPURenderBundleEncoder encoder, WGPUShaderStage stages, uint32_t offset, uint32_t sizeBytes, void const * data)
+        # FIXME: There are no assignments to class field _set_push_constants_function
+        # FIXME: There are no assignments to class field _set_push_constants_function
         function = type(self)._set_push_constants_function
         if function is None:
             self._not_implemented("set_push_constants")
@@ -3147,9 +3163,9 @@ class GPUCommandEncoder(
         c_timestamp_writes_struct = ffi.NULL
         if timestamp_writes is not None:
             check_struct("ComputePassTimestampWrites", timestamp_writes)
-            # H: querySet: WGPUQuerySet, beginningOfPassWriteIndex: int, endOfPassWriteIndex: int
+            # H: nextInChain: WGPUChainedStruct *, querySet: WGPUQuerySet, beginningOfPassWriteIndex: int, endOfPassWriteIndex: int
             c_timestamp_writes_struct = new_struct_p(
-                "WGPUComputePassTimestampWrites *",
+                "WGPUPassTimestampWrites *",
                 querySet=timestamp_writes["query_set"]._internal,
                 beginningOfPassWriteIndex=timestamp_writes.get(
                     "beginning_of_pass_write_index", lib.WGPU_QUERY_SET_INDEX_UNDEFINED
@@ -3157,8 +3173,9 @@ class GPUCommandEncoder(
                 endOfPassWriteIndex=timestamp_writes.get(
                     "end_of_pass_write_index", lib.WGPU_QUERY_SET_INDEX_UNDEFINED
                 ),
+                # not used: nextInChain
             )
-        # H: nextInChain: WGPUChainedStruct *, label: WGPUStringView, timestampWrites: WGPUComputePassTimestampWrites *
+        # H: nextInChain: WGPUChainedStruct *, label: WGPUStringView, timestampWrites: WGPUPassTimestampWrites *
         struct = new_struct_p(
             "WGPUComputePassDescriptor *",
             # not used: nextInChain
@@ -3184,9 +3201,9 @@ class GPUCommandEncoder(
         c_timestamp_writes_struct = ffi.NULL
         if timestamp_writes is not None:
             check_struct("RenderPassTimestampWrites", timestamp_writes)
-            # H: querySet: WGPUQuerySet, beginningOfPassWriteIndex: int, endOfPassWriteIndex: int
+            # H: nextInChain: WGPUChainedStruct *, querySet: WGPUQuerySet, beginningOfPassWriteIndex: int, endOfPassWriteIndex: int
             c_timestamp_writes_struct = new_struct_p(
-                "WGPURenderPassTimestampWrites *",
+                "WGPUPassTimestampWrites *",
                 querySet=timestamp_writes["query_set"]._internal,
                 beginningOfPassWriteIndex=timestamp_writes.get(
                     "beginning_of_pass_write_index", lib.WGPU_QUERY_SET_INDEX_UNDEFINED
@@ -3194,6 +3211,7 @@ class GPUCommandEncoder(
                 endOfPassWriteIndex=timestamp_writes.get(
                     "end_of_pass_write_index", lib.WGPU_QUERY_SET_INDEX_UNDEFINED
                 ),
+                # not used: nextInChain
             )
 
         c_color_attachments_list = [
@@ -3215,7 +3233,7 @@ class GPUCommandEncoder(
         if occlusion_query_set is not None:
             c_occlusion_query_set = occlusion_query_set._internal
 
-        # H: nextInChain: WGPUChainedStruct *, label: WGPUStringView, colorAttachmentCount: int, colorAttachments: WGPURenderPassColorAttachment *, depthStencilAttachment: WGPURenderPassDepthStencilAttachment *, occlusionQuerySet: WGPUQuerySet, timestampWrites: WGPURenderPassTimestampWrites *
+        # H: nextInChain: WGPUChainedStruct *, label: WGPUStringView, colorAttachmentCount: int, colorAttachments: WGPURenderPassColorAttachment *, depthStencilAttachment: WGPURenderPassDepthStencilAttachment *, occlusionQuerySet: WGPUQuerySet, timestampWrites: WGPUPassTimestampWrites *
         struct = new_struct_p(
             "WGPURenderPassDescriptor *",
             # not used: nextInChain
@@ -3313,7 +3331,7 @@ class GPUCommandEncoder(
                     logger.warning(f"Unexpected key {key} in depth_stencil_attachment")
                     setattr(self._device, f"warned_about_{key}", True)
 
-        # H: view: WGPUTextureView, depthLoadOp: WGPULoadOp, depthStoreOp: WGPUStoreOp, depthClearValue: float, depthReadOnly: WGPUBool/int, stencilLoadOp: WGPULoadOp, stencilStoreOp: WGPUStoreOp, stencilClearValue: int, stencilReadOnly: WGPUBool/int
+        # H: nextInChain: WGPUChainedStruct *, view: WGPUTextureView, depthLoadOp: WGPULoadOp, depthStoreOp: WGPUStoreOp, depthClearValue: float, depthReadOnly: WGPUBool/int, stencilLoadOp: WGPULoadOp, stencilStoreOp: WGPUStoreOp, stencilClearValue: int, stencilReadOnly: WGPUBool/int
         c_depth_stencil_attachment = new_struct_p(
             "WGPURenderPassDepthStencilAttachment *",
             view=view._internal,
@@ -3325,6 +3343,7 @@ class GPUCommandEncoder(
             stencilStoreOp=stencil_store_op,
             stencilClearValue=int(stencil_clear_value),
             stencilReadOnly=stencil_read_only,
+            # not used: nextInChain
         )
         return c_depth_stencil_attachment
 
@@ -3628,7 +3647,9 @@ class GPUComputePassEncoder(
     _set_bind_group_function = libf.wgpuComputePassEncoderSetBindGroup
     _begin_pipeline_statistics_query_function = libf.wgpuComputePassEncoderBeginPipelineStatisticsQuery  # fmt: skip
     _end_pipeline_statistics_query_function = libf.wgpuComputePassEncoderEndPipelineStatisticsQuery  # fmt: skip
-    _set_push_constants_function = libf.wgpuComputePassEncoderSetPushConstants
+    _set_push_constants_function = getattr(
+        libf, "wgpuComputePassEncoderSetPushConstants", None
+    )
 
     # GPUObjectBaseMixin
     _release_function = libf.wgpuComputePassEncoderRelease
@@ -3682,7 +3703,9 @@ class GPURenderPassEncoder(
 
     # GPUBindingCommandsMixin
     _set_bind_group_function = libf.wgpuRenderPassEncoderSetBindGroup
-    _set_push_constants_function = libf.wgpuRenderPassEncoderSetPushConstants
+    _set_push_constants_function = getattr(
+        libf, "wgpuRenderPassEncoderSetPushConstants", None
+    )
     _begin_pipeline_statistics_query_function = libf.wgpuRenderPassEncoderBeginPipelineStatisticsQuery  # fmt: skip
     _end_pipeline_statistics_query_function = libf.wgpuRenderPassEncoderEndPipelineStatisticsQuery  # fmt: skip
 
@@ -3822,7 +3845,9 @@ class GPURenderBundleEncoder(
 
     # GPUBindingCommandsMixin
     _set_bind_group_function = libf.wgpuRenderBundleEncoderSetBindGroup
-    _set_push_constants_function = libf.wgpuRenderBundleEncoderSetPushConstants
+    _set_push_constants_function = getattr(
+        libf, "wgpuRenderBundleEncoderSetPushConstants", None
+    )
     _begin_pipeline_statistics_query_function = None  # not implemented
     _end_pipeline_statistics_query_function = None  # not implemented
     _write_timestamp_function = None  # not implemented
