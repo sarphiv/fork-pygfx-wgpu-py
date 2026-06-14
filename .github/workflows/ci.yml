@@ -10,7 +10,6 @@ permissions:
   contents: read
 
 env:
-  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: "true"
   WGPU_PY_BUILD_NOARCH: "1"
   WGPU_NATIVE_REPO: https://github.com/gfx-rs/wgpu-native.git
   WGPU_NATIVE_COMMIT: 61efac8438bdbee4b93c1e111091d22120f1e1f3
@@ -24,11 +23,11 @@ jobs:
     timeout-minutes: 45
     runs-on: ubuntu-latest
     steps:
-    - uses: actions/checkout@v4
+    - uses: actions/checkout@v5
       with:
         persist-credentials: false
     - name: Set up Python
-      uses: actions/setup-python@v5
+      uses: actions/setup-python@v6
       with:
         python-version: '3.12'
     - name: Set up Rust
@@ -63,7 +62,7 @@ jobs:
           assert version_info == (29, 0, 3, 0), version_info
           PY
     - name: Upload native library
-      uses: actions/upload-artifact@v4
+      uses: actions/upload-artifact@v7
       with:
         name: linux_x86_64_native_lib
         path: downloads/native-artifact/libwgpu_native-release.so
@@ -76,11 +75,11 @@ jobs:
     strategy:
       fail-fast: false
     steps:
-    - uses: actions/checkout@v4
+    - uses: actions/checkout@v5
       with:
         persist-credentials: false
     - name: Set up Python
-      uses: actions/setup-python@v5
+      uses: actions/setup-python@v6
       with:
         python-version: '3.12'
     - name: Install dependencies
@@ -101,11 +100,11 @@ jobs:
     strategy:
       fail-fast: false
     steps:
-    - uses: actions/checkout@v4
+    - uses: actions/checkout@v5
       with:
         persist-credentials: false
     - name: Set up Python
-      uses: actions/setup-python@v5
+      uses: actions/setup-python@v6
       with:
         python-version: '3.12'
     - name: Install dependencies
@@ -123,11 +122,11 @@ jobs:
     strategy:
       fail-fast: false
     steps:
-    - uses: actions/checkout@v4
+    - uses: actions/checkout@v5
       with:
         persist-credentials: false
     - name: Set up Python
-      uses: actions/setup-python@v5
+      uses: actions/setup-python@v6
       with:
         python-version: '3.12'
     - name: Install dependencies
@@ -146,11 +145,11 @@ jobs:
     strategy:
       fail-fast: false
     steps:
-    - uses: actions/checkout@v4
+    - uses: actions/checkout@v5
       with:
         persist-credentials: false
     - name: Set up Python
-      uses: actions/setup-python@v5
+      uses: actions/setup-python@v6
       with:
         python-version: '3.12'
     - name: Install dev dependencies
@@ -170,11 +169,11 @@ jobs:
     strategy:
       fail-fast: false
     steps:
-    - uses: actions/checkout@v4
+    - uses: actions/checkout@v5
       with:
         persist-credentials: false
     - name: Set up Python
-      uses: actions/setup-python@v5
+      uses: actions/setup-python@v6
       with:
         python-version: '3.12'
     - name: Install llvmpipe and lavapipe for offscreen canvas
@@ -182,7 +181,7 @@ jobs:
         sudo apt-get update -y -qq
         sudo apt install -y libegl1-mesa-dev libgl1-mesa-dri libxcb-xfixes0-dev mesa-vulkan-drivers
     - name: Download native library
-      uses: actions/download-artifact@v4
+      uses: actions/download-artifact@v8
       with:
         name: linux_x86_64_native_lib
         path: wgpu/resources
@@ -207,15 +206,15 @@ jobs:
     strategy:
       fail-fast: false
     steps:
-    - uses: actions/checkout@v4
+    - uses: actions/checkout@v5
       with:
         persist-credentials: false
     - name: Set up Python
-      uses: actions/setup-python@v5
+      uses: actions/setup-python@v6
       with:
         python-version: '3.12'
     - name: Download native library
-      uses: actions/download-artifact@v4
+      uses: actions/download-artifact@v8
       with:
         name: linux_x86_64_native_lib
         path: wgpu/resources
@@ -261,11 +260,11 @@ jobs:
             os: ubuntu-latest
             pyversion: 'pypy3.11'
     steps:
-    - uses: actions/checkout@v4
+    - uses: actions/checkout@v5
       with:
         persist-credentials: false
     - name: Set up Python ${{ matrix.pyversion }}
-      uses: actions/setup-python@v5
+      uses: actions/setup-python@v6
       with:
         python-version: ${{ matrix.pyversion }}
     - name: Install llvmpipe and lavapipe for offscreen canvas
@@ -274,7 +273,7 @@ jobs:
         sudo apt-get update -y -qq
         sudo apt install -y libegl1-mesa-dev libgl1-mesa-dri libxcb-xfixes0-dev mesa-vulkan-drivers
     - name: Download native library
-      uses: actions/download-artifact@v4
+      uses: actions/download-artifact@v8
       with:
         name: linux_x86_64_native_lib
         path: wgpu/resources

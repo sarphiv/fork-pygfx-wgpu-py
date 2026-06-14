@@ -12,7 +12,6 @@ permissions:
   contents: read
 
 env:
-  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: "true"
   WGPU_NATIVE_REPO: https://github.com/gfx-rs/wgpu-native.git
   WGPU_NATIVE_COMMIT: 61efac8438bdbee4b93c1e111091d22120f1e1f3
   WEBGPU_HEADERS_COMMIT: 7d3186c3dd2c708703524027b46b8703534ab3cc
@@ -27,12 +26,12 @@ jobs:
     permissions:
       contents: read
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
         with:
           persist-credentials: false
 
       - name: Set up Python
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@v6
         with:
           python-version: '3.12'
 
@@ -109,7 +108,7 @@ jobs:
           popd
 
       - name: Upload wheel artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           path: dist/*.whl
           name: linux_x86_64_wheel
@@ -123,7 +122,7 @@ jobs:
       contents: write
     steps:
       - name: Download wheel artifact
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v8
         with:
           path: dist
 
