@@ -185,6 +185,9 @@ jobs:
               export PATH="$HOME/.cargo/bin:$PATH"
               /opt/python/cp312-cp312/bin/python -m pip install --upgrade pip
               WGPU_PY_BUILD_NOARCH=1 /opt/python/cp312-cp312/bin/python -m pip install -U -e ".[build]"
+              git config --global --add safe.directory /io
+              git config --global --add safe.directory /io/downloads/wgpu-native
+              git config --global --add safe.directory /io/downloads/wgpu-native/ffi/webgpu-headers
               /opt/python/cp312-cp312/bin/python tools/build_pinned_wgpu_native.py \
                 --checkout downloads/wgpu-native \
                 --os linux \
