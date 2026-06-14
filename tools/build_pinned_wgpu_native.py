@@ -64,6 +64,7 @@ def main() -> None:
 
     built_lib = built_library_path(checkout, args.os, args.target)
     staged_lib = RESOURCE_DIR / staged_library_name(args.os)
+    remove_staged_libraries()
     shutil.copy2(built_lib, staged_lib)
     verify_loaded_version(staged_lib, args.native_version)
     print(f"Staged {built_lib} as {staged_lib}")
@@ -102,6 +103,12 @@ def verify_checkout(
 def assert_same_file(path1: Path, path2: Path) -> None:
     if path1.read_bytes() != path2.read_bytes():
         raise RuntimeError(f"{path1} does not match {path2}")
+
+
+def remove_staged_libraries() -> None:
+    for path in RESOURCE_DIR.iterdir():
+        if path.suffix in {".so", ".dll", ".dylib"}:
+            path.unlink()
 
 
 def built_library_path(checkout: Path, os_name: str, target: str) -> Path:

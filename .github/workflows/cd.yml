@@ -170,6 +170,7 @@ jobs:
             -v "$PWD:/io" \
             -w /io \
             -e CARGO_HOME=/io/downloads/cargo \
+            -e RUSTUP_HOME=/io/downloads/rustup \
             -e CARGO_TARGET_DIR=/io/downloads/wgpu-native/target \
             -e HOST_UID="$HOST_UID" \
             -e HOST_GID="$HOST_GID" \
@@ -180,14 +181,16 @@ jobs:
             -e WGPU_BUILD_PLATFORM_INFO="${{ matrix.wgpu_native_tag }} ${{ matrix.wheel_tag }}" \
             "${{ matrix.manylinux_image }}" \
             /bin/bash -euxo pipefail -c '
-              export PATH="$HOME/.cargo/bin:$PATH"
+              export PATH="$CARGO_HOME/bin:$PATH"
               curl --proto "=https" --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y --profile minimal --default-toolchain 1.87.0
-              export PATH="$HOME/.cargo/bin:$PATH"
-              /opt/python/cp312-cp312/bin/python -m pip install --upgrade pip
-              WGPU_PY_BUILD_NOARCH=1 /opt/python/cp312-cp312/bin/python -m pip install -U -e ".[build]"
+              . "$CARGO_HOME/env"
+              cargo --version
+              rustc --version
               git config --global --add safe.directory /io
               git config --global --add safe.directory /io/downloads/wgpu-native
               git config --global --add safe.directory /io/downloads/wgpu-native/ffi/webgpu-headers
+              /opt/python/cp312-cp312/bin/python -m pip install --upgrade pip
+              WGPU_PY_BUILD_NOARCH=1 /opt/python/cp312-cp312/bin/python -m pip install -U -e ".[build]"
               /opt/python/cp312-cp312/bin/python tools/build_pinned_wgpu_native.py \
                 --checkout downloads/wgpu-native \
                 --os linux \
@@ -195,8 +198,9 @@ jobs:
                 --native-commit "$WGPU_NATIVE_COMMIT" \
                 --webgpu-headers-commit "$WEBGPU_HEADERS_COMMIT"
               /opt/python/cp312-cp312/bin/python -m build -n -w
+              auditwheel show dist/*.whl
               /opt/python/cp312-cp312/bin/python -m twine check dist/*.whl
-              chown -R "$HOST_UID:$HOST_GID" dist wgpu/resources
+              chown -R "$HOST_UID:$HOST_GID" dist wgpu/resources downloads
             '
 
       - name: Test wheel import and mapping
