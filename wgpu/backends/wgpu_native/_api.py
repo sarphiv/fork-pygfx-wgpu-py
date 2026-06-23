@@ -24,6 +24,7 @@ from weakref import WeakKeyDictionary
 from typing import NoReturn, Sequence
 
 from ..._coreutils import str_flag_to_int, ArrayLike, CanvasLike
+from ..._async import AwaitedType
 from ... import classes, flags, enums, structs
 
 from ._ffi import ffi, lib
@@ -689,7 +690,7 @@ class GPU(classes.GPU):
 gpu = GPU()
 
 
-class GPUPromise(classes.GPUPromise):
+class GPUPromise(classes.GPUPromise[AwaitedType]):
     def _sync_wait(self):
         # In the wgpu-native backend, we do the polling in a per-device thread.
         # The base class already sets a threading.Event, we can just use that here.
@@ -1799,16 +1800,27 @@ class GPUDevice(classes.GPUDevice, GPUObjectBase):
         return GPUBindGroup(label, id, self)
 
     def create_pipeline_layout(
-        self, *, label: str = "", bind_group_layouts: Sequence[GPUBindGroupLayout]
+        self,
+        *,
+        label: str = "",
+        bind_group_layouts: Sequence[GPUBindGroupLayout],
+        immediate_size: int = 0,
     ) -> GPUPipelineLayout:
-        return self._create_pipeline_layout(label, bind_group_layouts, [])
+        return self._create_pipeline_layout(
+            label, bind_group_layouts, [], immediate_size
+        )
 
     def _create_pipeline_layout(
         self,
         label: str,
         bind_group_layouts: Sequence[GPUBindGroupLayout],
         push_constant_layouts,
+        immediate_size=0,
     ):
+        immediate_size = int(immediate_size)
+        if immediate_size < 0:
+            raise ValueError("immediate_size must be non-negative")
+
         bind_group_layouts_ids = [x._internal for x in bind_group_layouts]
         c_layout_array = new_array("WGPUBindGroupLayout[]", bind_group_layouts_ids)
 
@@ -1846,7 +1858,7 @@ class GPUDevice(classes.GPUDevice, GPUObjectBase):
             label=to_c_string_view(label),
             bindGroupLayouts=c_layout_array,
             bindGroupLayoutCount=len(bind_group_layouts),
-            # not used: immediateSize
+            immediateSize=immediate_size,
         )
 
         # H: WGPUPipelineLayout f(WGPUDevice device, WGPUPipelineLayoutDescriptor const * descriptor)
@@ -2989,6 +3001,45 @@ class GPUBindingCommandsMixin(classes.GPUBindingCommandsMixin):
             self._not_implemented("set_push_constants")
         function(self._internal, int(visibility), offset, size, c_data + data_offset)
 
+    def set_immediates(
+        self,
+        offset: int,
+        data: ArrayLike,
+        size_in_bytes: int | None = None,
+        data_offset: int = 0,
+    ) -> None:
+        # We support anything that implements the buffer protocol, including
+        # bytes, bytearray, ctypes arrays, numpy arrays, etc. Use cffi's
+        # direct buffer view here because immediates are small and can be set
+        # very frequently; converting through an integer address is measurable.
+        try:
+            c_data = ffi.from_buffer("uint8_t []", data)
+        except (BufferError, ValueError) as err:
+            raise ValueError("The given data is not contiguous") from err
+        nbytes = len(c_data)
+
+        offset = int(offset)
+        data_offset = int(data_offset)
+        if size_in_bytes is None:
+            size = nbytes - data_offset
+        else:
+            size = int(size_in_bytes)
+
+        if offset < 0:
+            raise ValueError("Invalid offset")
+        if not (0 <= data_offset <= nbytes):
+            raise ValueError("Invalid data_offset")
+        if not (0 <= size <= nbytes - data_offset):
+            raise ValueError("Invalid size_in_bytes")
+
+        # H: void wgpuComputePassEncoderSetImmediates(WGPUComputePassEncoder computePassEncoder, uint32_t offset, void const * data, size_t size)
+        # H: void wgpuRenderPassEncoderSetImmediates(WGPURenderPassEncoder renderPassEncoder, uint32_t offset, void const * data, size_t size)
+        # H: void wgpuRenderBundleEncoderSetImmediates(WGPURenderBundleEncoder renderBundleEncoder, uint32_t offset, void const * data, size_t size)
+        function = type(self)._set_immediates_function
+        if function is None:
+            self._not_implemented("set_immediates")
+        function(self._internal, offset, c_data + data_offset, size)
+
     def _begin_pipeline_statistics_query(self, query_set, query_index):
         # H: void wgpuComputePassEncoderBeginPipelineStatisticsQuery(WGPUComputePassEncoder computePassEncoder, WGPUQuerySet querySet, uint32_t queryIndex)
         # H: void wgpuRenderPassEncoderBeginPipelineStatisticsQuery(WGPURenderPassEncoder renderPassEncoder, WGPUQuerySet querySet, uint32_t queryIndex)
@@ -3648,6 +3699,9 @@ class GPUComputePassEncoder(
     _set_push_constants_function = getattr(
         libf, "wgpuComputePassEncoderSetPushConstants", None
     )
+    _set_immediates_function = getattr(
+        libf, "wgpuComputePassEncoderSetImmediates", None
+    )
 
     # GPUObjectBaseMixin
     _release_function = libf.wgpuComputePassEncoderRelease
@@ -3704,6 +3758,7 @@ class GPURenderPassEncoder(
     _set_push_constants_function = getattr(
         libf, "wgpuRenderPassEncoderSetPushConstants", None
     )
+    _set_immediates_function = getattr(libf, "wgpuRenderPassEncoderSetImmediates", None)
     _begin_pipeline_statistics_query_function = libf.wgpuRenderPassEncoderBeginPipelineStatisticsQuery  # fmt: skip
     _end_pipeline_statistics_query_function = libf.wgpuRenderPassEncoderEndPipelineStatisticsQuery  # fmt: skip
 
@@ -3845,6 +3900,9 @@ class GPURenderBundleEncoder(
     _set_bind_group_function = libf.wgpuRenderBundleEncoderSetBindGroup
     _set_push_constants_function = getattr(
         libf, "wgpuRenderBundleEncoderSetPushConstants", None
+    )
+    _set_immediates_function = getattr(
+        libf, "wgpuRenderBundleEncoderSetImmediates", None
     )
     _begin_pipeline_statistics_query_function = None  # not implemented
     _end_pipeline_statistics_query_function = None  # not implemented

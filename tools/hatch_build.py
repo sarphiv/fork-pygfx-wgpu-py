@@ -25,6 +25,8 @@ Hook for building wheels with the hatchling build backend.
 
 import os
 import sys
+import re
+import ctypes
 from subprocess import run, PIPE
 
 from hatchling.builders.hooks.plugin.interface import BuildHookInterface
@@ -111,8 +113,33 @@ def ensure_bundled_lib_exists():
     dir = os.path.join(root_dir, "wgpu", "resources")
     for fname in os.listdir(dir):
         if fname.endswith((".so", ".dll", ".dylib")):
-            return
-    raise RuntimeError(
-        "WGPU_PY_BUILD_USE_BUNDLED_LIB is set, but no native library exists in "
-        "wgpu/resources."
+            lib_path = os.path.join(dir, fname)
+            break
+    else:
+        raise RuntimeError(
+            "WGPU_PY_BUILD_USE_BUNDLED_LIB is set, but no native library exists in "
+            "wgpu/resources."
+        )
+
+    expected = get_expected_native_version()
+    lib = ctypes.CDLL(lib_path)
+    version = lib.wgpuGetVersion()
+    actual = tuple((version >> bits) & 0xFF for bits in (24, 16, 8, 0))
+    if actual != expected:
+        raise RuntimeError(
+            f"WGPU_PY_BUILD_USE_BUNDLED_LIB is set, but {fname} reports native "
+            f"version {actual}, expected {expected}."
+        )
+
+
+def get_expected_native_version():
+    version_file = os.path.join(
+        root_dir, "wgpu", "backends", "wgpu_native", "__init__.py"
     )
+    with open(version_file) as f:
+        match = re.search(r'__version__ = "(.*?)"', f.read())
+    if not match:
+        raise RuntimeError(
+            f"Could not determine expected native version from {version_file}"
+        )
+    return tuple(int(part) for part in match.group(1).split("."))

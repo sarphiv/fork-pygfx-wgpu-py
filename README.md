@@ -1,8 +1,8 @@
-# AI-WRITTEN EXPERIMENTAL FLOAT32 ATOMICS BRANCH
+# AI-WRITTEN EXPERIMENTAL FLOAT32 ATOMICS AND IMMEDIATES BRANCH
 
 **This branch was entirely written by AI to add native-only float32 shader
-atomic support to this `wgpu-py` fork.** It is not an upstream `pygfx/wgpu-py`
-release and it does not claim browser WebGPU support.
+atomic and immediate-data support to this `wgpu-py` fork.** It is not an
+upstream `pygfx/wgpu-py` release and it does not claim browser WebGPU support.
 
 To enable the feature in downstream Python code, install the custom GitHub
 Release wheel from this fork and request the native feature explicitly:
@@ -21,6 +21,11 @@ checkout with local `naga` and `wgpu-hal` patches so workgroup/shared
 `atomic<f32>` validates and is enabled on Vulkan adapters that expose the
 required shared float32 atomic capabilities.
 
+Immediate data is exposed through the native `immediates` feature. Request
+that feature and a suitable `max-immediate-size` limit, create a pipeline
+layout with `immediate_size=...`, then call `set_immediates()` on a compute
+pass, render pass, or render bundle encoder before dispatching or drawing.
+
 This code and any wheel published from this branch are provided as-is, without
 warranty of any kind. Use them at your own risk. This experimental AI-generated
 branch is published without accepting liability for downstream breakage, data
@@ -38,7 +43,7 @@ damages arising from its use.
 A Python implementation of WebGPU - the next generation GPU API. 🚀
 
 <div>
-  <img width=320 src='https://raw.githubusercontent.com/pygfx/wgpu-py/main/examples/screenshots/triangle_auto.png' />
+  <img width=320 src='https://raw.githubusercontent.com/pygfx/wgpu-py/main/examples/screenshots/triangle.png' />
   <img width=320 src='https://raw.githubusercontent.com/pygfx/wgpu-py/main/examples/screenshots/cube.png' />
 </div>
 

@@ -91,13 +91,18 @@ def verify_checkout(
         )
 
     wgpu_h = checkout / "ffi" / "wgpu.h"
+    webgpu_h = headers_dir / "webgpu.h"
+    if "WGPUNativeFeature_Immediates = 0x00030001" not in wgpu_h.read_text():
+        raise RuntimeError("Pinned wgpu.h does not expose Immediates 0x00030001")
     if "WGPUNativeFeature_ShaderFloat32Atomic = 0x00030027" not in wgpu_h.read_text():
         raise RuntimeError(
             "Pinned wgpu.h does not expose ShaderFloat32Atomic 0x00030027"
         )
+    if "wgpuComputePassEncoderSetImmediates" not in webgpu_h.read_text():
+        raise RuntimeError("Pinned webgpu.h does not expose set-immediates functions")
 
     assert_same_file(wgpu_h, RESOURCE_DIR / "wgpu.h")
-    assert_same_file(headers_dir / "webgpu.h", RESOURCE_DIR / "webgpu.h")
+    assert_same_file(webgpu_h, RESOURCE_DIR / "webgpu.h")
 
 
 def assert_same_file(path1: Path, path2: Path) -> None:

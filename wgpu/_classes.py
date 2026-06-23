@@ -15,7 +15,7 @@ import logging
 import itertools
 from typing import Sequence
 
-from ._async import GPUPromise as BaseGPUPromise
+from ._async import GPUPromise as BaseGPUPromise, AwaitedType
 from ._coreutils import ApiDiff, str_flag_to_int, ArrayLike, CanvasLike
 from ._diagnostics import diagnostics, texture_format_to_bpp
 from . import flags, enums, structs
@@ -224,7 +224,7 @@ gpu = GPU()
 
 
 @apidiff.add("Added for async support")
-class GPUPromise(BaseGPUPromise):
+class GPUPromise(BaseGPUPromise[AwaitedType]):
     pass
 
 
@@ -990,14 +990,20 @@ class GPUDevice(GPUObjectBase):
         raise NotImplementedError()
 
     # IDL: GPUPipelineLayout createPipelineLayout(GPUPipelineLayoutDescriptor descriptor); -> USVString label = "", required sequence<GPUBindGroupLayout?> bindGroupLayouts
+    @apidiff.change("Expose the native immediate-data pipeline layout size.")
     def create_pipeline_layout(
-        self, *, label: str = "", bind_group_layouts: Sequence[GPUBindGroupLayout]
+        self,
+        *,
+        label: str = "",
+        bind_group_layouts: Sequence[GPUBindGroupLayout],
+        immediate_size: int = 0,
     ) -> GPUPipelineLayout:
         """Create a `GPUPipelineLayout` object, which can be used in `create_render_pipeline()` or `create_compute_pipeline()`.
 
         Arguments:
             label (str): A human-readable label. Optional.
             bind_group_layouts (list): A list of `GPUBindGroupLayout` objects.
+            immediate_size (int): Size in bytes of pipeline immediate data. Requires the native ``immediates`` feature when non-zero.
         """
         raise NotImplementedError()
 
@@ -1758,6 +1764,24 @@ class GPUBindingCommandsMixin:
             dynamic_offsets_data (list of int): A list of offsets (one for each entry in bind group marked as ``buffer.has_dynamic_offset``). Default ``[]``.
             dynamic_offsets_data_start (int): Offset in elements into dynamic_offsets_data where the buffer offset data begins. Default None.
             dynamic_offsets_data_length (int): Number of buffer offsets to read from dynamic_offsets_data. Default None.
+        """
+        raise NotImplementedError()
+
+    @apidiff.add("Native wgpu immediate-data extension")
+    def set_immediates(
+        self,
+        offset: int,
+        data: ArrayLike,
+        size_in_bytes: int | None = None,
+        data_offset: int = 0,
+    ) -> None:
+        """Set immediate data for subsequent draw or dispatch calls.
+
+        Arguments:
+            offset (int): Byte offset in the pipeline's immediate data block.
+            data (array-like): Data to upload. This can be any contiguous object supporting the buffer protocol.
+            size_in_bytes (int): Number of bytes to upload. If None, use the remaining bytes in ``data`` after ``data_offset``.
+            data_offset (int): Byte offset into ``data``.
         """
         raise NotImplementedError()
 

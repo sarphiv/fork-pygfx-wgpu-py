@@ -14,15 +14,15 @@
 * Diffs for GPUCanvasContext: add get_preferred_format, add physical_size, add present, add set_physical_size, hide canvas
 * Diffs for GPUAdapter: add summary
 * Diffs for GPUObjectBase: add uid
-* Diffs for GPUDevice: add adapter, add create_buffer_with_data, hide import_external_texture, hide lost_async, hide lost_sync, hide onuncapturederror, hide pop_error_scope_async, hide pop_error_scope_sync, hide push_error_scope
+* Diffs for GPUDevice: add adapter, add create_buffer_with_data, change create_pipeline_layout, hide import_external_texture, hide lost_async, hide lost_sync, hide onuncapturederror, hide pop_error_scope_async, hide pop_error_scope_sync, hide push_error_scope
 * Diffs for GPUBuffer: add read_mapped, add write_mapped, hide get_mapped_range
 * Diffs for GPUTexture: add size
 * Diffs for GPUTextureView: add size, add texture
-* Diffs for GPUBindingCommandsMixin: change set_bind_group
+* Diffs for GPUBindingCommandsMixin: add set_immediates, change set_bind_group
 * Diffs for GPUQueue: add read_buffer, add read_texture, hide copy_external_image_to_texture
-* Validated 38 classes, 120 methods, 51 properties
+* Validated 38 classes, 121 methods, 51 properties
 ### Patching API for backends/wgpu_native/_api.py
-* Validated 38 classes, 117 methods, 0 properties
+* Validated 38 classes, 118 methods, 0 properties
 ## Validating backends/wgpu_native/_api.py
 * Enum PipelineErrorReason missing in webgpu.h/wgpu.h
 * Enum AutoLayoutMode missing in webgpu.h/wgpu.h
@@ -30,7 +30,7 @@
 * Enum CanvasAlphaMode missing in webgpu.h/wgpu.h
 * Enum CanvasToneMappingMode missing in webgpu.h/wgpu.h
 * Wrote 266 enum mappings and 49 struct-field mappings to wgpu_native/_mappings.py
-* Validated 151 C function calls
-* Not using 88 C functions
+* Validated 154 C function calls
+* Not using 85 C functions
 * Optional C struct missing in webgpu.h/wgpu.h: WGPUPipelineLayoutExtras
 * Validated 97 C structs

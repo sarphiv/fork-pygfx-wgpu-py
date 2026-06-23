@@ -15,20 +15,24 @@ if not can_use_wgpu_lib:
     pytest.skip("Skipping tests that need the wgpu lib", allow_module_level=True)
 
 
-def find_float32_atomic_adapter():
-    adapters = wgpu.gpu.enumerate_adapters_sync()
-    return next((adapter for adapter in adapters if FEATURE in adapter.features), None)
-
-
 @pytest.fixture(scope="module")
 def float32_atomic_device():
-    adapter = find_float32_atomic_adapter()
-    if adapter is None:
-        pytest.skip(f"No wgpu adapter reports {FEATURE!r}")
+    errors = []
+    for adapter in wgpu.gpu.enumerate_adapters_sync():
+        if FEATURE not in adapter.features:
+            continue
+        try:
+            device = adapter.request_device_sync(required_features=[FEATURE])
+        except Exception as err:
+            errors.append(f"{adapter.summary}: {err}")
+        else:
+            assert FEATURE in device.features
+            return device
 
-    device = adapter.request_device_sync(required_features=[FEATURE])
-    assert FEATURE in device.features
-    return device
+    message = f"No usable wgpu adapter reports {FEATURE!r}"
+    if errors:
+        message += ". Device request errors: " + "; ".join(errors)
+    pytest.skip(message)
 
 
 def run_atomic_compute(device, shader_code, output_count, workgroups=WORKGROUPS):

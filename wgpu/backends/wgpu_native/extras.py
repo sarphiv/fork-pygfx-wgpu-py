@@ -80,9 +80,10 @@ def create_pipeline_layout(
     label: str = "",
     bind_group_layouts: Sequence[GPUBindGroupLayout],
     push_constant_layouts: Sequence[dict] = (),
+    immediate_size: int = 0,
 ) -> GPUPipelineLayout:
     return device._create_pipeline_layout(
-        label, bind_group_layouts, push_constant_layouts
+        label, bind_group_layouts, push_constant_layouts, immediate_size
     )
 
 

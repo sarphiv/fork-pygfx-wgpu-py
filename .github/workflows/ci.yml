@@ -12,9 +12,9 @@ permissions:
 env:
   WGPU_PY_BUILD_NOARCH: "1"
   WGPU_NATIVE_REPO: https://github.com/gfx-rs/wgpu-native.git
-  WGPU_NATIVE_COMMIT: 61efac8438bdbee4b93c1e111091d22120f1e1f3
-  WEBGPU_HEADERS_COMMIT: 7d3186c3dd2c708703524027b46b8703534ab3cc
-  WGPU_NATIVE_VERSION: 29.0.3.0
+  WGPU_NATIVE_COMMIT: 6aed50955d934ac36049ba8d002034841633ae02
+  WEBGPU_HEADERS_COMMIT: 673658bc2bd70ec39fc55ebe6bb0173cf6d0a603
+  WGPU_NATIVE_VERSION: 29.0.1.1
 
 jobs:
 
@@ -32,8 +32,8 @@ jobs:
         python-version: '3.12'
     - name: Set up Rust
       run: |
-          rustup toolchain install 1.87.0 --profile minimal
-          rustup default 1.87.0
+          rustup toolchain install 1.93 --profile minimal
+          rustup default 1.93
           rustc --version
     - name: Fetch pinned wgpu-native
       run: |
@@ -42,7 +42,9 @@ jobs:
           git -C downloads/wgpu-native submodule update --init --recursive
           test "$(git -C downloads/wgpu-native rev-parse HEAD)" = "$WGPU_NATIVE_COMMIT"
           test "$(git -C downloads/wgpu-native/ffi/webgpu-headers rev-parse HEAD)" = "$WEBGPU_HEADERS_COMMIT"
+          grep -q 'WGPUNativeFeature_Immediates = 0x00030001' downloads/wgpu-native/ffi/wgpu.h
           grep -q 'WGPUNativeFeature_ShaderFloat32Atomic = 0x00030027' downloads/wgpu-native/ffi/wgpu.h
+          grep -q 'wgpuComputePassEncoderSetImmediates' downloads/wgpu-native/ffi/webgpu-headers/webgpu.h
           cmp downloads/wgpu-native/ffi/wgpu.h wgpu/resources/wgpu.h
           cmp downloads/wgpu-native/ffi/webgpu-headers/webgpu.h wgpu/resources/webgpu.h
     - name: Build pinned wgpu-native
@@ -59,7 +61,7 @@ jobs:
           lib = ctypes.CDLL("downloads/native-artifact/libwgpu_native-release.so")
           version = lib.wgpuGetVersion()
           version_info = tuple((version >> bits) & 0xFF for bits in (24, 16, 8, 0))
-          assert version_info == (29, 0, 3, 0), version_info
+          assert version_info == (29, 0, 1, 1), version_info
           PY
     - name: Upload native library
       uses: actions/upload-artifact@v7
@@ -241,9 +243,6 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - name: Test Linux py310
-            os: ubuntu-latest
-            pyversion: '3.10'
           - name: Test Linux py311
             os: ubuntu-latest
             pyversion: '3.11'
